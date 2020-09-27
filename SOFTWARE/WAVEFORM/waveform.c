@@ -23,12 +23,11 @@
 #define PI 3.14159
 #define DAC_DHR12R1_ADDRESS 0x40007408
 
-u16 sinTable[tableSize]; //256;
-//u16 sawtoothTable[tableSize];//256;
-//u16 triangleTable[tableSize];//256;
-//u16 rectangleTable[tableSize];//256;
+u16 sinTable[tableSize];
 
 u8 KEY_Scan(u8 mode);
+u32 max_data;
+u16 position = 200; //波形图中心轴
 
 //将正弦波数据保存在静态内存中
 void sin_Generation(void)
@@ -155,69 +154,135 @@ void DAC_DMA_Configuration(void)
 	DAC_DMACmd(DAC_Channel_1, ENABLE); //使能DAC_DMA通道1
 }
 
-//void opt(void)
-//{
-//	u8 t ;
-//	t=KEY_Scan(0);
-//	if(t==2)
-//	{
-//		while(1)
-//		{
-//			sin_Generation();
-//			if(KEY_Scan(0)!=1)
-//				break;
-//		}
-//	}
-//}
 
 void MYDAC_Init(void)
 {
-	// opt();
-	//u8 key;
-	//sawtooth_Generation();
+
 	DacGPIO_Configuration();
 	TIM6_Configuration();
 	DAC_DMA_Configuration();
-	//	while(1)
-	//	{
-	//		key=KEY_Scan(0);		//得到键值
-	//	   	if(key)
-	//		{
-	//			switch(key)
-	//			{
-	//				case WKUP_PRES:	//控制蜂鸣器
-	//					sin_Generation();
-	//					break;
-	////				case KEY0_PRES:	//控制LED0翻转
-	////
-	////					break;
-	//				case KEY1_PRES:	//控制LED1翻转
-	//					triangle_Generation();
-	//					break;
-	//				case KEY2_PRES:	//同时控制LED0,LED1翻转
-	//           sawtooth_Generation();
-	//					break;
-	//			}
-	//		}
-	//		else delay_ms(10);
-	//	}
+
 }
 
-////	u8 opt=0;
-////	opt = KEY_Scan(0);
-////	if(opt==1)
-////	{
-////		while(1)
-////		{
-//	sin_Generation();
-////		}
-////	}
-//	//else if(opt==2)
-//	triangle_Generation();
-//
-//	//else if(opt==3)
-//	sawtooth_Generation();
-//
-//	//else if(opt==4)
-//	rectangle_Generation();
-//
+void clear_point(u16 num) //更新显示屏当前列
+{
+	u16 lie = 0;
+	POINT_COLOR = DARKBLUE;
+	for (lie = 1; lie < 400; lie++)
+	{
+		LCD_DrawPoint(num, lie);
+	}
+	if (!(num % 50)) //判断hang是否为50的倍数 画列点
+	{
+		for (lie = 10; lie < 400; lie += 10)
+		{
+			LCD_Fast_DrawPoint(num, lie, WHITE);
+		}
+	}
+	if (!(num % 10)) //判断hang是否为10的倍数 画行点
+	{
+		for (lie = 50; lie < 400; lie += 50)
+		{
+			LCD_Fast_DrawPoint(num, lie, WHITE);
+		}
+	}
+	POINT_COLOR = YELLOW;
+}
+
+void DrawOscillogram(u16 *buff, signed char *adc_binary_array, signed char *hdb3_binary_array, u16 len, signed int offset1, signed int offset2) //画波形图
+{
+
+	static u16 Ypos1_1 = 0, Ypos1_2 = 0, Ypos2_1 = 0, Ypos2_2 = 0, Ypos3_1 = 0, Ypos3_2 = 0;
+	signed int adc_binary_array_buff[800];
+	signed int hdb3_binary_array_buff[800];
+	signed char temp;
+	u16 i = 0;
+
+	for (i = 1; i < 700; i++) //存储AD数值
+	{
+		buff[i] = Get_Adc(ADC_Channel_6);
+		temp = adc_binary_array[(i * len) / 700];
+		adc_binary_array_buff[i] = temp * 1024;
+		temp = hdb3_binary_array[(i * len) / 700] + 1;
+		hdb3_binary_array_buff[i] = temp * 1024;
+	}
+	for (i = 1; i < 700; i++)
+	{
+		clear_point(i);
+		Ypos1_2 = position - (buff[i] * 165 / 4096); //转换坐标//4096
+		Ypos1_2 = Ypos1_2 * 2;						 //纵坐标倍数
+		if (Ypos1_2 > 400)
+			Ypos1_2 = 400; //超出范围不显示
+		POINT_COLOR = YELLOW;
+		LCD_DrawLine(i, Ypos1_1, i + 1, Ypos1_2); //波形连接
+		Ypos1_1 = Ypos1_2;
+		Ypos2_2 = position - (adc_binary_array_buff[i] * 165 / 4096);
+		Ypos2_2 -= offset1;
+		if (Ypos2_2 > 400)
+			Ypos2_2 = 400;
+		POINT_COLOR = WHITE;
+		LCD_DrawLine(i, Ypos2_1, i + 1, Ypos2_2); //波形连接
+		Ypos2_1 = Ypos2_2;
+		Ypos3_2 = position - (hdb3_binary_array_buff[i] * 165 / 4096);
+		Ypos3_2 -= offset2;
+		if (Ypos3_2 > 400)
+			Ypos3_2 = 400;
+		POINT_COLOR = RED;
+		LCD_DrawLine(i, Ypos3_1, i + 1, Ypos3_2); //波形连接
+		Ypos3_1 = Ypos3_2;
+	}
+	Ypos1_1 = 0;
+	Ypos2_1 = 0;
+	Ypos3_1 = 0;
+}
+
+void Set_BackGround(void)
+{
+	LCD_Clear(DARKBLUE);
+	POINT_COLOR = WHITE;
+	LCD_DrawRectangle(0, 0, 700, 400);
+}
+
+void Lcd_DrawNetwork(void)
+{
+	u16 index_y = 0;
+	u16 index_x = 0;
+	for (index_x = 50; index_x < 700; index_x += 50)
+	{
+		for (index_y = 10; index_y < 400; index_y += 10)
+		{
+			LCD_Fast_DrawPoint(index_x, index_y, WHITE);
+		}
+	}
+	//画行点
+	for (index_y = 50; index_y < 400; index_y += 50)
+	{
+		for (index_x = 10; index_x < 700; index_x += 10)
+		{
+			LCD_Fast_DrawPoint(index_x, index_y, WHITE);
+		}
+	}
+}
+
+float get_vpp(u16 *buf) //获取峰峰值
+{
+
+	u32 max_data = buf[0];
+	u32 min_data = buf[0];
+	u32 n = 0;
+	float Vpp = 0;
+	for (n = 1; n < 256; n++)
+	{
+		if (buf[n] > max_data)
+		{
+			max_data = buf[n];
+		}
+		else if (buf[n] < min_data)
+			min_data = buf[n];
+	}
+	Vpp = (float)(max_data - min_data);
+	Vpp = Vpp * (3.3 / 4096);
+	max_data = max_data * (3.3 / 4096);
+	min_data = min_data * (3.3 / 4096);
+	return Vpp;
+}
