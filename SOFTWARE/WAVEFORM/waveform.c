@@ -14,14 +14,33 @@
                           电压大小的显示用DAC来处理
 */
 
-//#include "dac.h"
 #include "sys.h"
 #include "math.h"
 #include "waveform.h"
 #include "key.h"
+#include "adc.h"
 #include "delay.h"
 #define PI 3.14159
 #define DAC_DHR12R1_ADDRESS 0x40007408
+
+double freq[16][2] = {
+	941, 1336, //0
+	697, 1209, //1
+	697, 1336, //2
+	697, 1477, //3
+	770, 1209, //4
+	770, 1336, //5
+	770, 1477, //6
+	852, 1209, //7
+	852, 1336, //8
+	852, 1477, //9
+	697, 1633, //A
+	770, 1633, //B
+	852, 1633, //C
+	941, 1633, //D
+	941, 1209, //*
+	941, 1477, //#
+};
 
 u16 sinTable[tableSize];
 
@@ -41,7 +60,7 @@ void sin_Generation(void)
 	}
 	for (n = 0; n < tableSize; n++)
 	{
-		sinTable[n] = (sin(2 * PI * n / tableSize) + 1) * (temp);
+		sinTable[n] = (sin(2 * PI * n * 2000 / 256) + 1) * (temp);
 	}
 }
 
@@ -80,6 +99,23 @@ void rectangle_Generation(void)
 	for (; n < (tableSize); n++)
 	{
 		sinTable[n] = 1000;
+	}
+}
+
+void dtmf_Generation(int num)
+{
+	double row_freq, col_freq;
+	u16 n = 0;
+	u16 temp = 512;
+	double row_sinwave;
+	double col_sinwave;
+	row_freq = freq[num][0] / 60000;
+	col_freq = freq[num][1] / 60000;
+	for (n = 0; n < tableSize; n++)
+	{
+		row_sinwave = sin(2 * PI * n * row_freq) + 1;
+		col_sinwave = sin(2 * PI * n * col_freq) + 1;
+		sinTable[n] = (row_sinwave + col_sinwave) * (temp);
 	}
 }
 

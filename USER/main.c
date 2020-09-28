@@ -45,15 +45,6 @@ int main(void)
 		Dec2Bin(adcx, adc_binary_array, len);
 		HDB3_Encoding(hdb3_binary_array, adc_binary_array, len);
 		HDB3_Decoding(dac_binary_array, hdb3_binary_array, len);
-		
-		printf("ADC_Value: %d \r\n", adcx);
-		printf("ADC_Binary:");
-		print_binary_string(adc_binary_array,len);
-		printf("HDB3_Encode:");
-		print_binary_string(hdb3_binary_array,len);
-		printf("HDB3_Decode:");
-		print_binary_string(dac_binary_array,len);
-		
 		Bin2Dec(dac_binary_array, dacx);
 		Dac2_Set_Vol(dacx);
 		DrawOscillogram(buff, adc_binary_array, hdb3_binary_array, 16, -20, 80); //画波形
@@ -80,7 +71,8 @@ int main(void)
 			switch (key)
 			{
 			case WKUP_PRES:
-				sin_Generation();
+				dtmf_Generation(1);
+				// sin_Generation();
 				BEEP = 1;
 				delay_ms(100);
 				BEEP = 0;
@@ -119,7 +111,8 @@ int main(void)
 					switch (key)
 					{
 					case WKUP_PRES:
-						sin_Generation();
+						dtmf_Generation(1);
+						// sin_Generation();
 						break;
 					case KEY1_PRES:
 						triangle_Generation();
