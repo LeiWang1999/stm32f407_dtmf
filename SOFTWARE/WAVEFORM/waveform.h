@@ -9,7 +9,7 @@ void sin_Generation(void);
 void sawtooth_Generation(void);
 void triangle_Generation(void);
 void rectangle_Generation(void);
-void dtmf_Generation(int num);
+void dtmf_Generation(u16 num);
 void MYDAC_Init(void);
 void clear_point(u16 num);                                                                                                                       //更新显示屏当前列
 void Set_BackGround(void);                                                                                                                       //设置背景

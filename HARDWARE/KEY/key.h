@@ -18,8 +18,11 @@
 #define KEY2 		GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_4) //PE4
 #define KEY1 		GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_3)	//PE3 
 #define KEY0 		GPIO_ReadInputDataBit(GPIOE,GPIO_Pin_2) //PE2
-#define WK_UP 	    GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_0)	//PA0
-
+#define WK_UP       GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_0)      //PA0
+#define LINE0       GPIO_ReadInputDataBit(GPIOG, GPIO_Pin_15)      //PA0
+#define LINE1       GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_4)      //PA0
+#define LINE2       GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_6)      //PA0
+#define LINE3       GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_8)      //PA0
 
 /*下面方式是通过位带操作方式读取IO*/
 /*
@@ -36,6 +39,7 @@
 #define WKUP_PRES   4
 
 void KEY_Init(void);	//IO初始化
-u8 KEY_Scan(u8);  		//按键扫描函数	
+u8 KEY_Scan(u8);  		//按键扫描函数
+int MartrixKeyScan(void);
 
 #endif

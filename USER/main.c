@@ -24,7 +24,9 @@ int main(void)
 	signed char dac_binary_array[16];
 	float Adresult = 0;
 	u8 Vpp_buff[20] = {0};
+	u8 Number_buff[20] = {0};
 	u8 key = 0;
+	u8 current_value = 0;
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); //设置系统中断优先级分组2
 	delay_init(168);								//初始化延时函数
 	uart_init(115200);								//初始化串口波特率为115200
@@ -50,13 +52,16 @@ int main(void)
 		DrawOscillogram(buff, adc_binary_array, hdb3_binary_array, 16, -20, 80); //画波形
 		Adresult = get_vpp(buff); //峰峰值mv
 		sprintf((char *)Vpp_buff, "Vpp = %0.3fV", Adresult);
-		
+		sprintf((char *)Number_buff, "Number: %3d", current_value);
+
 		// 右侧提示
 		POINT_COLOR = RED;
 		LCD_ShowString(720, 50, 80, 24, 24, "HDB3");
 		POINT_COLOR = WHITE;
 		LCD_ShowString(720, 200, 80, 24, 24, "ADCX");
 		// 下方提示
+		POINT_COLOR = WHITE;
+		LCD_ShowString(100, 425, 288, 29, 24, Number_buff);
 		POINT_COLOR = WHITE;
 		LCD_ShowString(320, 425, 210, 24, 24, Vpp_buff);
 		POINT_COLOR = WHITE;
@@ -71,22 +76,22 @@ int main(void)
 			switch (key)
 			{
 			case WKUP_PRES:
-				dtmf_Generation(1);
+				dtmf_Generation(current_value);
 				// sin_Generation();
 				BEEP = 1;
-				delay_ms(100);
+				delay_ms(20);
 				BEEP = 0;
 				break;
 			case KEY1_PRES:
-				triangle_Generation();
+				if (current_value < 15)current_value++;
 				BEEP = 1;
-				delay_ms(100);
+				delay_ms(20);
 				BEEP = 0;
 				break;
 			case KEY2_PRES:
-				sawtooth_Generation();
+				if (current_value > 0) current_value--;
 				BEEP = 1;
-				delay_ms(100);
+				delay_ms(20);
 				BEEP = 0;
 				break;
 			}
@@ -94,7 +99,7 @@ int main(void)
 		else if (key == KEY0_PRES)
 		{
 			BEEP = 1;
-			delay_ms(100);
+			delay_ms(20);
 			BEEP = 0;
 			do
 			{
@@ -106,19 +111,18 @@ int main(void)
 				if (key == 0 || key == 2 || key == 3 || key == 4)
 				{
 					BEEP = 1;
-					delay_ms(100);
+					delay_ms(20);
 					BEEP = 0;
 					switch (key)
 					{
 					case WKUP_PRES:
-						dtmf_Generation(1);
-						// sin_Generation();
+						dtmf_Generation(current_value);
 						break;
 					case KEY1_PRES:
-						triangle_Generation();
+						current_value++;
 						break;
 					case KEY2_PRES:
-						sawtooth_Generation();
+						current_value--;
 						break;
 					}
 					break;

@@ -43,6 +43,8 @@ double freq[16][2] = {
 };
 
 u16 sinTable[tableSize];
+u16 rowsinTable[tableSize];
+u16 colsinTable[tableSize];
 
 u8 KEY_Scan(u8 mode);
 u32 max_data;
@@ -102,7 +104,7 @@ void rectangle_Generation(void)
 	}
 }
 
-void dtmf_Generation(int num)
+void dtmf_Generation(u16 num)
 {
 	double row_freq, col_freq;
 	u16 n = 0;

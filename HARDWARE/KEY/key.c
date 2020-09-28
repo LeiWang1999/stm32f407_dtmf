@@ -1,4 +1,5 @@
 #include "key.h"
+#include "stm32f4xx_gpio.h"
 #include "delay.h" 
 #include "lcd.h"
 //////////////////////////////////////////////////////////////////////////////////	 
@@ -19,20 +20,39 @@ void KEY_Init(void)
 {
 	
 	GPIO_InitTypeDef  GPIO_InitStructure;
-
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA|RCC_AHB1Periph_GPIOE, ENABLE);//使能GPIOA,GPIOE时钟
- 
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2|GPIO_Pin_3|GPIO_Pin_4; //KEY0 KEY1 KEY2对应引脚
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;//普通输入模式
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;//100M
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;//上拉
-  GPIO_Init(GPIOE, &GPIO_InitStructure);//初始化GPIOE2,3,4
-	
-	 
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;//WK_UP对应引脚PA0
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN ;//下拉
-  GPIO_Init(GPIOA, &GPIO_InitStructure);//初始化GPIOA0
- 
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOG | RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOD, ENABLE); //使能GPIOA,GPIOE时钟
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4; //KEY0 KEY1 KEY2对应引脚
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;						//普通输入模式
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;					//100M
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;						//上拉
+	GPIO_Init(GPIOE, &GPIO_InitStructure);								//初始化GPIOE2,3,4
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;	   //WK_UP对应引脚PA0
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN; //下拉
+	GPIO_Init(GPIOA, &GPIO_InitStructure);		   //初始化GPIOA0
+	/****4行输出****/
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_Init(GPIOD, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_11 | GPIO_Pin_13;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOG, &GPIO_InitStructure);
+	/**** 4列输入 ****/
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN; //上拉
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOG, &GPIO_InitStructure);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_6 | GPIO_Pin_8;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
 } 
 //按键处理函数
 //返回按键值
@@ -61,22 +81,126 @@ u8 KEY_Scan(u8 mode)
  	return 1;// 无按键按下
 }
 
+/************************************
+按键表盘为:  1  2  3  a
+             4  5  6  b
+			 7  8  9  c 
+			 *  0  #  d 
+// ************************************/
+int MartrixKeyScan(void)
+{
+	GPIO_WriteBit(GPIOD, GPIO_Pin_6, Bit_SET);
+	GPIO_WriteBit(GPIOG, GPIO_Pin_9, Bit_SET);
+	GPIO_WriteBit(GPIOG, GPIO_Pin_11, Bit_SET);
+	GPIO_WriteBit(GPIOG, GPIO_Pin_13, Bit_SET);
+	if ((LINE0 | LINE1 | LINE2 | LINE3) == 0) //如果PG4、PB4、PB6、PB8全为零则没有按键按下
+	{
+		return 20;
+	}
+	GPIO_WriteBit(GPIOD, GPIO_Pin_6, Bit_SET);
+	GPIO_WriteBit(GPIOG, GPIO_Pin_9, Bit_RESET);
+	GPIO_WriteBit(GPIOG, GPIO_Pin_11, Bit_RESET);
+	GPIO_WriteBit(GPIOG, GPIO_Pin_13, Bit_RESET);
+	if (LINE0)
+	{
+		return 1;
+	}
+	else if (LINE1)
+	{
+		return 2;
+	}
+	else if (LINE2)
+	{
+		return 3;
+	}
+	else if (LINE3)
+	{
+		return 10;
+	}
 
+	while ((LINE0 | LINE1 | LINE2 | LINE3) > 0) //等待按键释放，同理，不赘述
+	{
+		GPIO_WriteBit(GPIOD, GPIO_Pin_6, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_9, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_11, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_13, Bit_RESET);
+	};
 
+	GPIO_WriteBit(GPIOG, GPIO_Pin_9, Bit_SET);
+	if (LINE0)
+	{
+		return 4;
+	}
+	else if (LINE1)
+	{
+		return 5;
+	}
+	else if (LINE2)
+	{
+		return 6;
+	}
+	else if (LINE3)
+	{
+		return 11;
+	}
 
+	while ((LINE0 | LINE1 | LINE2 | LINE3) > 0)					//等待按键释放，同理，不赘述
+	{
+		GPIO_WriteBit(GPIOD, GPIO_Pin_6, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_9, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_11, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_13, Bit_RESET);
+	};								//重新让PC0到PC3全部输出低。
 
+	GPIO_WriteBit(GPIOG, GPIO_Pin_11, Bit_SET);
+	if (LINE0)
+	{
+		return 7;
+	}
+	else if (LINE1)
+	{
+		return 8;
+	}
+	else if (LINE2)
+	{
+		return 9;
+	}
+	else if (LINE3)
+	{
+		return 12;
+	}
 
+	while ((LINE0 | LINE1 | LINE2 | LINE3) > 0) //等待按键释放，同理，不赘述
+	{
+		GPIO_WriteBit(GPIOD, GPIO_Pin_6, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_9, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_11, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_13, Bit_RESET);
+	}; //重新让PC0到PC3全部输出低。
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+	GPIO_WriteBit(GPIOG, GPIO_Pin_13, Bit_SET);
+	if (LINE0)
+	{
+		return 13;
+	}
+	else if (LINE1)
+	{
+		return 14;
+	}
+	else if (LINE2)
+	{
+		return 15;
+	}
+	else if (LINE3)
+	{
+		return 16;
+	}
+	while ((LINE0 | LINE1 | LINE2 | LINE3) > 0) //等待按键释放，同理，不赘述
+	{
+		GPIO_WriteBit(GPIOD, GPIO_Pin_6, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_9, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_11, Bit_RESET);
+		GPIO_WriteBit(GPIOG, GPIO_Pin_13, Bit_RESET);
+	}; //重新让PC0到PC3全部输出低。
+	return 0;
+}
