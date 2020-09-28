@@ -13,6 +13,8 @@
 #include "stm32f4xx.h" // Device header
 #include "waveform.h"
 
+extern double freq[16][2];
+
 int main(void)
 {
 	u16 buff[800];
@@ -24,6 +26,8 @@ int main(void)
 	signed char dac_binary_array[16];
 	float Adresult = 0;
 	u8 Vpp_buff[20] = {0};
+	u8 Row_buff[20] = {0};
+	u8 Col_buff[20] = {0};
 	u8 Number_buff[20] = {0};
 	u8 key = 0;
 	u8 current_value = 0;
@@ -49,16 +53,16 @@ int main(void)
 		HDB3_Decoding(dac_binary_array, hdb3_binary_array, len);
 		Bin2Dec(dac_binary_array, dacx);
 		Dac2_Set_Vol(dacx);
-		DrawOscillogram(buff, adc_binary_array, hdb3_binary_array, 16, -20, 80); //画波形
+		DrawOscillogram(buff,tableSize , -20, 80); //画波形
 		Adresult = get_vpp(buff); //峰峰值mv
 		sprintf((char *)Vpp_buff, "Vpp = %0.3fV", Adresult);
 		sprintf((char *)Number_buff, "Number: %3d", current_value);
 
 		// 右侧提示
 		POINT_COLOR = RED;
-		LCD_ShowString(720, 50, 80, 24, 24, "HDB3");
+		LCD_ShowString(710, 50, 80, 24, 24, Row_buff);
 		POINT_COLOR = WHITE;
-		LCD_ShowString(720, 200, 80, 24, 24, "ADCX");
+		LCD_ShowString(710, 200, 80, 24, 24, Col_buff);
 		// 下方提示
 		POINT_COLOR = WHITE;
 		LCD_ShowString(100, 425, 288, 29, 24, Number_buff);
@@ -77,21 +81,22 @@ int main(void)
 			{
 			case WKUP_PRES:
 				dtmf_Generation(current_value);
-				// sin_Generation();
+				sprintf((char *)Row_buff, "%4d Hz", (int)freq[current_value][0]);
+				sprintf((char *)Col_buff, "%4d Hz", (int)freq[current_value][1]);
 				BEEP = 1;
-				delay_ms(20);
+				delay_ms(10);
 				BEEP = 0;
 				break;
 			case KEY1_PRES:
 				if (current_value < 15)current_value++;
 				BEEP = 1;
-				delay_ms(20);
+				delay_ms(10);
 				BEEP = 0;
 				break;
 			case KEY2_PRES:
 				if (current_value > 0) current_value--;
 				BEEP = 1;
-				delay_ms(20);
+				delay_ms(10);
 				BEEP = 0;
 				break;
 			}
@@ -99,7 +104,7 @@ int main(void)
 		else if (key == KEY0_PRES)
 		{
 			BEEP = 1;
-			delay_ms(20);
+			delay_ms(10);
 			BEEP = 0;
 			do
 			{
@@ -111,7 +116,7 @@ int main(void)
 				if (key == 0 || key == 2 || key == 3 || key == 4)
 				{
 					BEEP = 1;
-					delay_ms(20);
+					delay_ms(10);
 					BEEP = 0;
 					switch (key)
 					{

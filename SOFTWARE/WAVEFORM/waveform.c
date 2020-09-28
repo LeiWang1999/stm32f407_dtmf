@@ -116,8 +116,10 @@ void dtmf_Generation(u16 num)
 	for (n = 0; n < tableSize; n++)
 	{
 		row_sinwave = sin(2 * PI * n * row_freq) + 1;
+		rowsinTable[n] = row_sinwave * temp;
 		col_sinwave = sin(2 * PI * n * col_freq) + 1;
-		sinTable[n] = (row_sinwave + col_sinwave) * (temp);
+		colsinTable[n] = col_sinwave * temp;
+		sinTable[n] = (row_sinwave + col_sinwave) * temp;
 	}
 }
 
@@ -125,7 +127,6 @@ void dtmf_Generation(u16 num)
 void TIM6_Configuration(void)
 {
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM6, ENABLE);
-
 	TIM_PrescalerConfig(TIM6, 83, TIM_PSCReloadMode_Update);
 	TIM_SetAutoreload(TIM6, 4);
 	TIM_SelectOutputTrigger(TIM6, TIM_TRGOSource_Update);
@@ -227,22 +228,16 @@ void clear_point(u16 num) //更新显示屏当前列
 	POINT_COLOR = YELLOW;
 }
 
-void DrawOscillogram(u16 *buff, signed char *adc_binary_array, signed char *hdb3_binary_array, u16 len, signed int offset1, signed int offset2) //画波形图
+void DrawOscillogram(u16 *buff,  u16 len, signed int offset1, signed int offset2) //画波形图
 {
 
 	static u16 Ypos1_1 = 0, Ypos1_2 = 0, Ypos2_1 = 0, Ypos2_2 = 0, Ypos3_1 = 0, Ypos3_2 = 0;
-	signed int adc_binary_array_buff[800];
-	signed int hdb3_binary_array_buff[800];
 	signed char temp;
 	u16 i = 0;
 
 	for (i = 1; i < 700; i++) //存储AD数值
 	{
 		buff[i] = Get_Adc(ADC_Channel_6);
-		temp = adc_binary_array[(i * len) / 700];
-		adc_binary_array_buff[i] = temp * 1024;
-		temp = hdb3_binary_array[(i * len) / 700] + 1;
-		hdb3_binary_array_buff[i] = temp * 1024;
 	}
 	for (i = 1; i < 700; i++)
 	{
@@ -254,14 +249,14 @@ void DrawOscillogram(u16 *buff, signed char *adc_binary_array, signed char *hdb3
 		POINT_COLOR = YELLOW;
 		LCD_DrawLine(i, Ypos1_1, i + 1, Ypos1_2); //波形连接
 		Ypos1_1 = Ypos1_2;
-		Ypos2_2 = position - (adc_binary_array_buff[i] * 165 / 4096);
+		Ypos2_2 = position - (rowsinTable[i] * 165 / 4096);
 		Ypos2_2 -= offset1;
 		if (Ypos2_2 > 400)
 			Ypos2_2 = 400;
 		POINT_COLOR = WHITE;
 		LCD_DrawLine(i, Ypos2_1, i + 1, Ypos2_2); //波形连接
 		Ypos2_1 = Ypos2_2;
-		Ypos3_2 = position - (hdb3_binary_array_buff[i] * 165 / 4096);
+		Ypos3_2 = position - (colsinTable[i] * 165 / 4096);
 		Ypos3_2 -= offset2;
 		if (Ypos3_2 > 400)
 			Ypos3_2 = 400;
